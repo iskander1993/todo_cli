@@ -5,25 +5,28 @@ import (
 	"os"
 )
 
+// FilePath путь к JSON
 const FilePath = "tasks.json"
 
-func LoadTasks() ([]map[string]interface{}, error) {
-	file, err := os.ReadFile(FilePath)
-	if err != nil {
-		return []map[string]interface{}{}, nil
-	}
-	var tasks []map[string]interface{}
-	err = json.Unmarshal(file, &tasks)
-	if err != nil {
-		return []map[string]interface{}{}, nil
-	}
-	return tasks, nil
-}
-
-func SaveTasks(tasks []map[string]interface{}) error {
-	data, err := json.MarshalIndent(tasks, "", " ")
+// SaveTasks сохраняет список задач в файл
+func SaveTasks[T any](tasks []T) error {
+	data, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(FilePath, data, 0644)
+}
+
+// LoadTasks загружает список задач из файла
+func LoadTasks[T any]() ([]T, error) {
+	file, err := os.ReadFile(FilePath)
+	if err != nil {
+		return []T{}, nil // если файла нет — возвращаем пустой срез
+	}
+	var tasks []T
+	err = json.Unmarshal(file, &tasks)
+	if err != nil {
+		return []T{}, nil
+	}
+	return tasks, nil
 }
