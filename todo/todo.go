@@ -19,7 +19,10 @@ var maxID int
 
 // Загружаем задачи из файла
 func LoadTasksFromFile() {
-	tasksFromFile, _ := storage.LoadTasks[Task]()
+	tasksFromFile, err := storage.LoadTasks[Task]()
+	if err != nil {
+		fmt.Println("⚠️  Ошибка при загрузке задач:", err)
+	}
 	tasks = tasksFromFile
 
 	maxID = 0
@@ -28,13 +31,16 @@ func LoadTasksFromFile() {
 			maxID = task.ID
 		}
 	}
+	if len(tasks) > 0 {
+		fmt.Printf("✅ Загружено задач: %d\n", len(tasks))
+	}
 }
 
 // Сохраняем задачи в файл
 func SaveTasksToFile() {
 	err := storage.SaveTasks(tasks)
 	if err != nil {
-		fmt.Println("Ошибка при сохранении задач:", err)
+		fmt.Println("❌ Ошибка при сохранении задач:", err)
 	}
 }
 
@@ -51,19 +57,65 @@ func AddTask(name string) {
 	SaveTasksToFile()
 }
 
-// Вывод списка задач
-func ListTasks() {
+// Вывод списка задач с фильтром
+// filter: "all" - все, "done" - выполненные, "pending"
+func ListTasks(filter string) {
 	if len(tasks) == 0 {
-		fmt.Println("Список задач пуст")
+		fmt.Println("📋 Список задач пуст")
 		return
 	}
+
+	//Фильтруем задачи
+	filteredTasks := []Task{}
 	for _, task := range tasks {
+		if filter == "all" ||
+			(filter == "done" && task.Done) ||
+			(filter == "pending" && !task.Done) {
+			filteredTasks = append(filteredTasks, task)
+		}
+	}
+
+	if len(filteredTasks) == 0 {
+		switch filter {
+		case "done":
+			fmt.Println("📋 Нет выполненных задач")
+		case "pending":
+			fmt.Println("📋 Нет выполненных задач")
+		}
+		return
+	}
+
+	//Красивывй заголовок с статикой
+	switch filter {
+	case "done":
+		fmt.Printf("\n✅ Выполненные задачи (%d):\n", len(filteredTasks))
+	case "pending":
+		fmt.Printf("\n⏳ Невыполненные задачи (%d):\n", len(filteredTasks))
+	default:
+		fmt.Printf("\n📋 Все задачи (всего: %d, выполнено: %d, осталось: %d):\n",
+			len(tasks), countDone(), len(tasks)-countDone())
+	}
+	//Вывод задач
+
+	for _, task := range filteredTasks {
 		status := "✖"
 		if task.Done {
 			status = "✔"
 		}
-		fmt.Printf("%d. [%s] %s\n", task.ID, status, task.Name)
+		fmt.Println("  %d. [%s] %s\n", task.ID, status, task.Name)
+
 	}
+	fmt.Println()
+}
+
+func countDone() int {
+	count := 0
+	for _, task := range tasks {
+		if task.Done {
+			count++
+		}
+	}
+	return count
 }
 
 // Удаление задачи по ID
@@ -77,7 +129,7 @@ func RemoveTask(id int) {
 	}
 
 	if index == -1 {
-		fmt.Println("Задача с таким ID не найдена")
+		fmt.Println("❌ Задача с таким ID не найдена")
 		return
 	}
 
@@ -95,9 +147,8 @@ func UpdateTask(id int, newName string) {
 			break
 		}
 	}
-
 	if !found {
-		fmt.Println("Задача с таким ID не найдена")
+		fmt.Println("❌ Задача с таким ID не найдена")
 		return
 	}
 
@@ -109,6 +160,10 @@ func MarkDone(id int) {
 	found := false
 	for i, task := range tasks {
 		if task.ID == id {
+			if !tasks[i].Done {
+				fmt.Println("ℹ️Задача уже выполнена")
+				return
+			}
 			tasks[i].Done = true
 			found = true
 			break
@@ -116,7 +171,7 @@ func MarkDone(id int) {
 	}
 
 	if !found {
-		fmt.Println("Задача с таким ID не найдена")
+		fmt.Println("❌Задача с таким ID не найдена")
 		return
 	}
 

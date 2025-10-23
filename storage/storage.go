@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 )
 
@@ -21,8 +22,12 @@ func SaveTasks[T any](tasks []T) error {
 func LoadTasks[T any]() ([]T, error) {
 	file, err := os.ReadFile(FilePath)
 	if err != nil {
+
+		if errors.Is(err, os.ErrNotExist) {
+		}
 		return []T{}, nil // если файла нет — возвращаем пустой срез
 	}
+
 	var tasks []T
 	err = json.Unmarshal(file, &tasks)
 	if err != nil {
